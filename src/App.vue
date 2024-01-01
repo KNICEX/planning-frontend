@@ -34,7 +34,6 @@
         <div v-for="(node, index2) in item" :key="index1 * width + index2" :class="[code2className(node.value), 'node']"
           @click="changeBlock(index1, index2)" :style="{
             width: itemEleWidth + 'px', height: itemEleHeight + 'px',
-
             left: index1 * itemEleWidth + 'px', top: index2 * itemEleHeight + 'px'
           }"></div>
       </template>
@@ -48,6 +47,7 @@ const PATH = 2
 const TERMINAL = 3
 const NULL = 0
 
+// 将地图code转换为类名
 const code2className = (code) => {
   switch (code) {
     case BLOCK:
@@ -60,11 +60,14 @@ const code2className = (code) => {
       return ''
   }
 }
+// 地图元素宽高
 const graphEleWidth = 800
 const graphEleHeight = 800
 
+// 障碍物概率
 const blockRatio = ref(20)
 
+// 地图宽度(格子数)
 let width = ref(30)
 let height = computed(() => {
   return width.value
@@ -75,13 +78,20 @@ let sizeChanged = false
 
 let itemEleWidth = graphEleWidth / width.value
 let itemEleHeight = graphEleHeight / height.value
+
+// 监听宽度变化，重新刷新地图
 watch(width, () => {
   itemEleWidth = graphEleWidth / width.value
   itemEleHeight = graphEleHeight / height.value
   sizeChanged = true
   refreshGraph()
 })
+
+// 点击更改格子
 const changeBlock = (x, y) => {
+  if (graph.value[x][y].value == TERMINAL) {
+    return
+  }
   graph.value[x][y].value = graph.value[x][y].value == 1 ? 0 : 1
   planPath()
 }
@@ -92,7 +102,7 @@ const endX = ref(width.value-1)
 const endY = ref(height.value-1)
 
 
-
+// 将graph转换为二维数组
 const graphValue2ddimArr = () => {
   const arr = []
   for (let i = 0; i < width.value; i++) {
@@ -131,6 +141,7 @@ const planPath = async () => {
   
   const pathArr = await res.json()
   console.log(pathArr)
+  // 清除上一次的路径
   for (let i = 0; i < width.value; i++) {
     for (let j = 0; j < height.value; j++) {
       if (graph.value[i][j].value == PATH) {
@@ -138,6 +149,7 @@ const planPath = async () => {
       }
     }
   }
+  // 将新路径渲染
   pathArr.route.forEach(item => {
     if (item.toString() === [startX.value, startY.value].toString() || item.toString() == [endX.value, endY.value].toString()) {
       return
@@ -145,6 +157,7 @@ const planPath = async () => {
     graph.value[item[0]][item[1]].value = PATH
   })
 }
+
 const refreshGraph = () => {
   graph.value = new Array(width.value)
   for (let i = 0; i < width.value; i++) {
@@ -153,10 +166,12 @@ const refreshGraph = () => {
       graph.value[i][j] = {
         x: i,
         y: j,
+        // 随机生成障碍物
         value: Math.random() < (blockRatio.value / 200 + 0.1) ? 1 : 0
       }
     }
   }
+  // 设置默认起点终点
   endX.value = width.value-1
   endY.value = height.value-1
   graph.value[startX.value][startY.value].value = 3
